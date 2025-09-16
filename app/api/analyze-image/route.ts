@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
           content: [
             {
               type: "text",
-              text: 'Analyze this image and provide a descriptive filename (without extension). Respond in this JSON format: {"filename": "descriptive-filename", "description": "Brief description of the image"}',
+              text: 'Analyze this image and provide a descriptive filename (without extension). Respond in this JSON format: {"filename": "descriptive-filename", "description": "Brief description of the image", "confidence" "Confidence Score as a decimal number like 0.9"}',
             },
             {
               type: "image_url",
@@ -47,13 +47,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         description: parsed.description || "AI-generated description",
         suggestedName: parsed.filename || "ai-generated-filename",
-        confidence: 0.9,
+        confidence: parsed.confidence || "Not provided",
       });
     } catch {
       return NextResponse.json({
         description: aiResponse || "AI-generated description",
         suggestedName: "ai-generated-filename",
-        confidence: 0.8,
+        confidence: parsed.confidence || "Not provided",
       });
     }
   } catch (error) {
