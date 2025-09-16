@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { Image } from "next/image";
 import { Upload, Image as ImageIcon, Sparkles, Download, Loader2 } from "lucide-react";
 import styles from "./page.module.css";
 
@@ -39,31 +40,27 @@ function App() {
       // Convert image to base64
       const base64 = await fileToBase64(selectedFile);
 
-      // For demo purposes, we'll simulate AI analysis
-      // In a real app, you'd call an actual AI vision API
-      await new Promise((resolve) => setTimeout(resolve, 2000)); // Simulate API call
-
-      // Mock analysis results based on common patterns
-      const mockResults = [
-        { description: "Orange race car on a track", suggestedName: "orange-racecar.png", confidence: 0.92 },
-        { description: "Red sports car in motion", suggestedName: "red-sportscar.png", confidence: 0.88 },
-        { description: "Blue vintage automobile", suggestedName: "blue-vintage-car.png", confidence: 0.85 },
-        {
-          description: "Mountain landscape at sunset",
-          suggestedName: "sunset-mountain-landscape.png",
-          confidence: 0.94,
+      // Call our API route
+      const response = await fetch("/api/analyze-image", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-        {
-          description: "Golden retriever playing in park",
-          suggestedName: "golden-retriever-park.png",
-          confidence: 0.91,
-        },
-      ];
+        body: JSON.stringify({
+          base64Image: base64,
+        }),
+      });
 
-      // Randomly select a mock result for demo
-      const result = mockResults[Math.floor(Math.random() * mockResults.length)];
+      if (!response.ok) {
+        throw new Error("Failed to analyze image");
+      }
+
+      const result: AnalysisResult = await response.json();
+      console.log("Generated Analysis:", result);
+
       setAnalysisResult(result);
     } catch (err) {
+      console.error("Error analyzing image:", err);
       setError("Failed to analyze image. Please try again.");
     } finally {
       setIsAnalyzing(false);
@@ -148,7 +145,7 @@ function App() {
                     Original Image
                   </h3>
                   <div className={styles.imagePreview}>
-                    <img src={previewUrl} alt="Preview" className={styles.previewImage} />
+                    <Image src={previewUrl} alt="Preview" className={styles.previewImage} />
                   </div>
                   <div className={styles.fileInfo}>
                     <p>
