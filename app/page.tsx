@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import { Image } from "next/image";
 import { Upload, Image as ImageIcon, Sparkles, Download, Loader2 } from "lucide-react";
 import styles from "./page.module.css";
 
@@ -56,7 +55,6 @@ function App() {
       }
 
       const result: AnalysisResult = await response.json();
-      console.log("Generated Analysis:", result);
 
       setAnalysisResult(result);
     } catch (err) {
@@ -145,7 +143,8 @@ function App() {
                     Original Image
                   </h3>
                   <div className={styles.imagePreview}>
-                    <Image src={previewUrl} alt="Preview" className={styles.previewImage} />
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={previewUrl} alt="Preview" className={styles.previewImage} />
                   </div>
                   <div className={styles.fileInfo}>
                     <p>

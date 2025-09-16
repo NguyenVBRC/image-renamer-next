@@ -36,17 +36,13 @@ export async function POST(request: NextRequest) {
     });
 
     const aiResponse = response.choices[0].message.content;
-    console.log("AI Response: ", aiResponse);
 
     try {
       // Extract JSON from markdown code blocks
       let jsonString = aiResponse || "{}";
-
       // Remove markdown code blocks and newlines
       jsonString = jsonString.replace(/```json\s*|\s*```/g, "").trim();
-
       const parsed = JSON.parse(jsonString);
-      console.log("Parsing succeeded:", parsed);
 
       return NextResponse.json({
         description: parsed.description || "AI-generated description",
@@ -54,9 +50,6 @@ export async function POST(request: NextRequest) {
         confidence: 0.9,
       });
     } catch (parseError) {
-      console.log("Parsing failed:", parseError);
-      console.log("Raw response:", aiResponse);
-
       // If JSON parsing fails, create a response from the raw text
       return NextResponse.json({
         description: aiResponse || "AI-generated description",
