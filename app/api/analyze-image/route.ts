@@ -49,8 +49,7 @@ export async function POST(request: NextRequest) {
         suggestedName: parsed.filename || "ai-generated-filename",
         confidence: 0.9,
       });
-    } catch (parseError) {
-      // If JSON parsing fails, create a response from the raw text
+    } catch {
       return NextResponse.json({
         description: aiResponse || "AI-generated description",
         suggestedName: "ai-generated-filename",
