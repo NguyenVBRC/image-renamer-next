@@ -1,95 +1,259 @@
-import Image from "next/image";
+"use client";
+
+import React, { useState } from "react";
+import { Upload, Image as ImageIcon, Sparkles, Download, Loader2 } from "lucide-react";
 import styles from "./page.module.css";
 
-export default function Home() {
-  return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol>
-          <li>
-            Get started by editing <code>app/page.tsx</code>.
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+interface AnalysisResult {
+  description: string;
+  suggestedName: string;
+  confidence: number;
+}
 
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.secondary}
-          >
-            Read our docs
-          </a>
+function App() {
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>("");
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+  const [error, setError] = useState<string>("");
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && file.type.startsWith("image/")) {
+      setSelectedFile(file);
+      setPreviewUrl(URL.createObjectURL(file));
+      setAnalysisResult(null);
+      setError("");
+    } else {
+      setError("Please select a valid image file");
+    }
+  };
+
+  const analyzeImage = async () => {
+    if (!selectedFile) return;
+
+    setIsAnalyzing(true);
+    setError("");
+
+    try {
+      // Convert image to base64
+      const base64 = await fileToBase64(selectedFile);
+
+      // For demo purposes, we'll simulate AI analysis
+      // In a real app, you'd call an actual AI vision API
+      await new Promise((resolve) => setTimeout(resolve, 2000)); // Simulate API call
+
+      // Mock analysis results based on common patterns
+      const mockResults = [
+        { description: "Orange race car on a track", suggestedName: "orange-racecar.png", confidence: 0.92 },
+        { description: "Red sports car in motion", suggestedName: "red-sportscar.png", confidence: 0.88 },
+        { description: "Blue vintage automobile", suggestedName: "blue-vintage-car.png", confidence: 0.85 },
+        {
+          description: "Mountain landscape at sunset",
+          suggestedName: "sunset-mountain-landscape.png",
+          confidence: 0.94,
+        },
+        {
+          description: "Golden retriever playing in park",
+          suggestedName: "golden-retriever-park.png",
+          confidence: 0.91,
+        },
+      ];
+
+      // Randomly select a mock result for demo
+      const result = mockResults[Math.floor(Math.random() * mockResults.length)];
+      setAnalysisResult(result);
+    } catch (err) {
+      setError("Failed to analyze image. Please try again.");
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
+  const downloadRenamedFile = () => {
+    if (!selectedFile || !analysisResult) return;
+
+    const fileExtension = selectedFile.name.split(".").pop();
+    const newFileName = analysisResult.suggestedName.endsWith(`.${fileExtension}`)
+      ? analysisResult.suggestedName
+      : `${analysisResult.suggestedName.split(".")[0]}.${fileExtension}`;
+
+    const link = document.createElement("a");
+    link.href = previewUrl;
+    link.download = newFileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const resetApp = () => {
+    setSelectedFile(null);
+    setPreviewUrl("");
+    setAnalysisResult(null);
+    setError("");
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+  };
+
+  return (
+    <div className={styles.app}>
+      <div className={styles.container}>
+        {/* Header */}
+        <div className={styles.header}>
+          <div className={styles.headerTitle}>
+            <Sparkles className={styles.headerIcon} />
+            <h1>AI Image Renamer</h1>
+          </div>
+          <p className={styles.headerDescription}>
+            Upload any image and let AI analyze it to generate a more descriptive and accurate filename
+          </p>
         </div>
-      </main>
-      <footer className={styles.footer}>
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+        <div className={styles.mainContent}>
+          {/* Upload Section */}
+          {!selectedFile && (
+            <div className={styles.card}>
+              <div className={styles.uploadArea}>
+                <div className={styles.uploadContent}>
+                  <Upload className={styles.uploadIcon} />
+                  <h3 className={styles.uploadTitle}>Upload Your Image</h3>
+                  <p className={styles.uploadDescription}>Choose an image file (PNG, JPG, WebP) to get started</p>
+                  <label className={styles.uploadButton}>
+                    Select Image
+                    <input type="file" accept="image/*" onChange={handleFileSelect} className={styles.fileInput} />
+                  </label>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Image Preview and Analysis */}
+          {selectedFile && (
+            <div className={styles.card}>
+              <div className={styles.previewGrid}>
+                {/* Image Preview */}
+                <div>
+                  <h3 className={styles.sectionTitle}>
+                    <ImageIcon className={styles.sectionIcon} />
+                    Original Image
+                  </h3>
+                  <div className={styles.imagePreview}>
+                    <img src={previewUrl} alt="Preview" className={styles.previewImage} />
+                  </div>
+                  <div className={styles.fileInfo}>
+                    <p>
+                      <strong>Original filename:</strong> {selectedFile.name}
+                    </p>
+                    <p>
+                      <strong>File size:</strong> {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                    </p>
+                  </div>
+                </div>
+
+                {/* Analysis Section */}
+                <div className={styles.analysisSection}>
+                  <h3 className={styles.sectionTitle}>
+                    <Sparkles className={styles.sectionIcon} />
+                    AI Analysis
+                  </h3>
+
+                  {!analysisResult && !isAnalyzing && (
+                    <div className={styles.analysisPrompt}>
+                      <p>Ready to analyze your image and generate a better filename</p>
+                      <button onClick={analyzeImage} className={styles.analyzeButton}>
+                        Analyze with AI
+                      </button>
+                    </div>
+                  )}
+
+                  {isAnalyzing && (
+                    <div className={styles.loadingState}>
+                      <Loader2 className={styles.loadingIcon} />
+                      <p className={styles.loadingText}>Analyzing image with AI...</p>
+                    </div>
+                  )}
+
+                  {analysisResult && (
+                    <div>
+                      <div className={styles.analysisComplete}>
+                        <h4>Analysis Complete!</h4>
+                        <p className={styles.analysisDescription}>{analysisResult.description}</p>
+                        <div className={styles.confidenceBar}>
+                          <div className={styles.confidenceTrack}>
+                            <div
+                              className={styles.confidenceFill}
+                              style={{ width: `${analysisResult.confidence * 100}%` }}
+                            ></div>
+                          </div>
+                          <span>{Math.round(analysisResult.confidence * 100)}%</span>
+                        </div>
+                      </div>
+
+                      <div className={styles.filenameSuggestion}>
+                        <h4>Suggested Filename:</h4>
+                        <p className={styles.suggestedFilename}>{analysisResult.suggestedName}</p>
+                      </div>
+
+                      <div className={styles.actionButtons}>
+                        <button onClick={downloadRenamedFile} className={styles.downloadButton}>
+                          <Download className={styles.buttonIcon} />
+                          Download Renamed
+                        </button>
+                        <button onClick={resetApp} className={styles.resetButton}>
+                          New Image
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Error Message */}
+          {error && <div className={styles.errorMessage}>{error}</div>}
+
+          {/* Features Section */}
+          <div className={`${styles.card} ${styles.featuresSection}`}>
+            <h2 className={styles.featuresTitle}>How It Works</h2>
+            <div className={styles.featuresGrid}>
+              <div className={styles.featureItem}>
+                <div className={styles.featureIconWrapper}>
+                  <Upload className={styles.featureIcon} />
+                </div>
+                <h3 className={styles.featureTitle}>1. Upload</h3>
+                <p className={styles.featureDescription}>Select any image file from your device</p>
+              </div>
+              <div className={styles.featureItem}>
+                <div className={styles.featureIconWrapper}>
+                  <Sparkles className={styles.featureIcon} />
+                </div>
+                <h3 className={styles.featureTitle}>2. Analyze</h3>
+                <p className={styles.featureDescription}>AI analyzes the image content and context</p>
+              </div>
+              <div className={styles.featureItem}>
+                <div className={styles.featureIconWrapper}>
+                  <Download className={styles.featureIcon} />
+                </div>
+                <h3 className={styles.featureTitle}>3. Download</h3>
+                <p className={styles.featureDescription}>Get your image with a descriptive filename</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
+
+export default App;
