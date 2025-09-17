@@ -1,7 +1,9 @@
 import React from "react";
 import { Upload, Sparkles, Download } from "lucide-react";
 import UploadImage from "./components/UploadImage";
+import { AuthModal } from "./components/AuthModal";
 import styles from "./page.module.css";
+import { UsageLimit } from "./components/UsageLimit";
 
 function App() {
   return (
@@ -19,6 +21,7 @@ function App() {
         </div>
 
         <div className={styles.mainContent}>
+          <UsageLimit />
           <UploadImage />
 
           {/* Features Section */}
@@ -49,6 +52,8 @@ function App() {
             </div>
           </div>
         </div>
+
+        <AuthModal />
       </div>
     </div>
   );
