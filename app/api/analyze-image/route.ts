@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
           ],
         },
       ],
-      max_tokens: 150,
+      max_completion_tokens: 150,
     });
 
     const aiResponse = response.choices[0].message.content;
