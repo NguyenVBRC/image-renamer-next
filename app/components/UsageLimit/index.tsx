@@ -37,7 +37,7 @@ export function UsageLimit() {
       </div>
 
       <div className={styles.upgradeSection}>
-        <p className={styles.upgradeText}>Get unlimited image analysis with a free account</p>
+        <p className={styles.upgradeText}>Get more image analysis with a free account</p>
         <button onClick={onUpgrade} className={styles.upgradeButton}>
           <Crown className={styles.crownIcon} />
           Sign Up for Free
