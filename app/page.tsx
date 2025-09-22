@@ -13,7 +13,7 @@ function App() {
         <div className={styles.header}>
           <div className={styles.headerTitle}>
             <Sparkles className={styles.headerIcon} />
-            <h1>AI Image Ren[ai]mer</h1>
+            <h1>AI Image Renamer</h1>
           </div>
           <p className={styles.headerDescription}>
             Upload any image and let AI analyze it to generate a more descriptive and accurate filename
