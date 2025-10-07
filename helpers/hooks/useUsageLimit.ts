@@ -12,16 +12,10 @@ interface UsageData {
 export function useUsageLimit(user: User | null) {
   const [remainingUses, setRemainingUses] = useState(MAX_FREE_USES);
   const [loading, setLoading] = useState(true);
+  const [updateTrigger, setUpdateTrigger] = useState(0); // Force re-evaluation
 
-  useEffect(() => {
-    if (user) {
-      // Authenticated users have unlimited uses
-      setRemainingUses(Infinity);
-      setLoading(false);
-      return;
-    }
-
-    // For non-authenticated users, check local storage
+  // Function to update remaining uses from localStorage
+  const updateUsageFromStorage = () => {
     const storedUsage = localStorage.getItem(STORAGE_KEY);
     if (storedUsage) {
       try {
@@ -48,21 +42,28 @@ export function useUsageLimit(user: User | null) {
     } else {
       setRemainingUses(MAX_FREE_USES);
     }
+  };
 
+  useEffect(() => {
+    if (user) {
+      // Authenticated users have unlimited uses
+      setRemainingUses(Infinity);
+      setLoading(false);
+      return;
+    }
+
+    // For non-authenticated users, check local storage
+    updateUsageFromStorage();
     setLoading(false);
-  }, [user]);
+  }, [user, updateTrigger]);
 
-  const useAnalysis = () => {
+  const consumeAnalysis = () => {
     if (user) {
       // Authenticated users have unlimited uses
       return true;
     }
 
-    if (remainingUses <= 0) {
-      return false;
-    }
-
-    // Update usage count
+    // Check current usage from localStorage before consuming
     const today = new Date().toDateString();
     const storedUsage = localStorage.getItem(STORAGE_KEY);
     let currentUsage: UsageData;
@@ -76,18 +77,64 @@ export function useUsageLimit(user: User | null) {
       currentUsage = { count: 0, lastReset: today };
     }
 
+    // Check if we still have usage available
+    if (currentUsage.count >= MAX_FREE_USES) {
+      return false;
+    }
+
+    // Consume one usage
     currentUsage.count += 1;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(currentUsage));
-    setRemainingUses(Math.max(0, MAX_FREE_USES - currentUsage.count));
+    
+    // Update the state immediately
+    const newRemainingUses = Math.max(0, MAX_FREE_USES - currentUsage.count);
+    setRemainingUses(newRemainingUses);
+    
+    // Trigger a re-render
+    setUpdateTrigger(prev => prev + 1);
 
     return true;
+  };
+
+  const refundAnalysis = () => {
+    if (user) {
+      // Authenticated users don't need refunds
+      return;
+    }
+
+    const today = new Date().toDateString();
+    const storedUsage = localStorage.getItem(STORAGE_KEY);
+    let currentUsage: UsageData;
+
+    if (storedUsage) {
+      currentUsage = JSON.parse(storedUsage);
+      if (currentUsage.lastReset !== today) {
+        // If it's a new day, no need to refund
+        return;
+      }
+    } else {
+      // No usage recorded, nothing to refund
+      return;
+    }
+
+    // Refund one usage (but don't go below 0)
+    currentUsage.count = Math.max(0, currentUsage.count - 1);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(currentUsage));
+    
+    // Update the state immediately
+    const newRemainingUses = Math.max(0, MAX_FREE_USES - currentUsage.count);
+    setRemainingUses(newRemainingUses);
+    
+    // Trigger a re-render
+    setUpdateTrigger(prev => prev + 1);
   };
 
   return {
     remainingUses,
     maxUses: MAX_FREE_USES,
     canUse: user ? true : remainingUses > 0,
-    useAnalysis,
+    consumeAnalysis,
+    refundAnalysis,
     loading,
     isUnlimited: !!user,
   };

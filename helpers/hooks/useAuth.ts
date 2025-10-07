@@ -7,7 +7,6 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // If Supabase is not configured, set loading to false and return
     if (!isSupabaseConfigured() || !supabase) {
       setLoading(false);
       return;

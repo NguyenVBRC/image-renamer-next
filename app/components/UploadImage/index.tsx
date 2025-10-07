@@ -1,7 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Upload, Image as ImageIcon, Sparkles, Download, Loader2 } from "lucide-react";
+import { useUsageLimit } from "@/helpers/hooks/useUsageLimit";
+import { useAuth } from "@/helpers/hooks/useAuth";
 import styles from "./UploadImage.module.css";
 
 interface AnalysisResult {
@@ -17,11 +19,30 @@ const UploadImage = ({ className }: { className?: string }) => {
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string>("");
 
+  // Usage limit hooks
+  const { user } = useAuth();
+  const { canUse, consumeAnalysis, remainingUses, isUnlimited } = useUsageLimit(user);
+
+  // Clean up object URLs when component unmounts
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
+    
     if (file && file.type.startsWith("image/")) {
+      // Clean up previous preview URL if it exists
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
       setSelectedFile(file);
-      setPreviewUrl(URL.createObjectURL(file));
+      const newPreviewUrl = URL.createObjectURL(file);
+      setPreviewUrl(newPreviewUrl);
       setAnalysisResult(null);
       setError("");
     } else {
@@ -31,6 +52,12 @@ const UploadImage = ({ className }: { className?: string }) => {
 
   const analyzeImage = async () => {
     if (!selectedFile) return;
+
+    // Check usage limit
+    if (!canUse) {
+      setError(`You've reached your daily limit. ${isUnlimited ? '' : `You have ${remainingUses} analyses remaining. Sign up for unlimited access!`}`);
+      return;
+    }
 
     setIsAnalyzing(true);
     setError("");
@@ -55,6 +82,12 @@ const UploadImage = ({ className }: { className?: string }) => {
       }
 
       const result: AnalysisResult = await response.json();
+
+      // Only consume usage AFTER successful API response
+      const canProceed = consumeAnalysis();
+      if (!canProceed) {
+        console.warn("Usage limit reached after successful API call");
+      }
 
       setAnalysisResult(result);
     } catch (err) {
@@ -130,8 +163,26 @@ const UploadImage = ({ className }: { className?: string }) => {
                 Original Image
               </h3>
               <div className={styles.imagePreview}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={previewUrl} alt="Preview" className={styles.previewImage} />
+                {previewUrl ? (
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img 
+                      src={previewUrl} 
+                      alt="Preview" 
+                      className={styles.previewImage}
+                      onLoad={() => console.log("Image loaded successfully")}
+                      onError={(e) => console.error("Image failed to load:", e, "URL:", previewUrl)}
+                    />
+                    <p style={{ fontSize: '0.8em', color: '#666', marginTop: '0.5rem' }}>
+                      Preview URL: {previewUrl.substring(0, 50)}...
+                    </p>
+                  </>
+                ) : (
+                  <div style={{ padding: '2rem', textAlign: 'center', background: '#f3f4f6', borderRadius: '0.5rem' }}>
+                    <p>No preview URL available</p>
+                    <p>Selected file: {selectedFile?.name || 'None'}</p>
+                  </div>
+                )}
               </div>
               <div className={styles.fileInfo}>
                 <p>
@@ -153,8 +204,21 @@ const UploadImage = ({ className }: { className?: string }) => {
               {!analysisResult && !isAnalyzing && (
                 <div className={styles.analysisPrompt}>
                   <p>Ready to analyze your image and generate a better filename</p>
-                  <button onClick={analyzeImage} className={styles.analyzeButton}>
-                    Analyze with AI
+                  {!isUnlimited && (
+                    <p style={{ fontSize: '0.9em', color: '#666', marginBottom: '10px' }}>
+                      {remainingUses} analysis{remainingUses !== 1 ? 'es' : ''} remaining today
+                    </p>
+                  )}
+                  <button 
+                    onClick={analyzeImage} 
+                    className={styles.analyzeButton}
+                    disabled={!canUse}
+                    style={{ 
+                      opacity: canUse ? 1 : 0.5, 
+                      cursor: canUse ? 'pointer' : 'not-allowed' 
+                    }}
+                  >
+                    {canUse ? 'Analyze with AI' : 'Daily Limit Reached'}
                   </button>
                   <button onClick={resetApp} className={`${styles.resetButton} ${styles.cancelButton}`}>
                     Cancel
